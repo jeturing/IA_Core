@@ -170,24 +170,157 @@ configure_llm() {
     if [ -n "$OPENAI_API_KEY" ]; then
         log_info "Usando OPENAI_API_KEY existente"
     else
-        log_warning "No se encontró OPENAI_API_KEY"
-        log_info "IA_Core funcionará con el endpoint gratuito (con límites)"
+        log_warning "No se encontró OPENAI_API_KEY en el entorno"
+        echo ""
+        echo -e "${YELLOW}IA_Core necesita una API key de OpenAI para funcionar completamente.${NC}"
+        echo -e "${CYAN}Opciones:${NC}"
+        echo "  1. Proporcionar API key ahora (recomendado)"
+        echo "  2. Configurar después (funcionalidad limitada)"
+        echo ""
         
-        # Create config with free endpoint
-        cat > "$HOME/.iacore/llm_config.yml" << EOF
+        read -p "Opción [1/2]: " api_choice
+        
+        if [ "$api_choice" = "1" ]; then
+            echo ""
+            echo -e "${CYAN}Obtén tu API key en: https://platform.openai.com/api-keys${NC}"
+            echo -e "${YELLOW}(El texto no se mostrará al escribir por seguridad)${NC}"
+            read -sp "Ingresa tu OpenAI API key: " user_api_key
+            echo ""
+            
+            if [ -n "$user_api_key" ]; then
+                # Save to .bashrc or .zshrc
+                shell_rc="$HOME/.bashrc"
+                [ -f "$HOME/.zshrc" ] && shell_rc="$HOME/.zshrc"
+                
+                echo "" >> "$shell_rc"
+                echo "# IA_Core OpenAI API Key" >> "$shell_rc"
+                echo "export OPENAI_API_KEY='$user_api_key'" >> "$shell_rc"
+                
+                export OPENAI_API_KEY="$user_api_key"
+                
+                log_success "API key guardada en $shell_rc"
+            fi
+        else
+            log_warning "Continuando sin API key. Funcionalidad limitada."
+        fi
+    fi
+    
+    # Create LLM config
+    mkdir -p "$HOME/.iacore"
+    cat > "$HOME/.iacore/llm_config.yml" << EOF
 provider: openai
 model: gpt-4o-mini
 endpoint: https://api.openai.com/v1/chat/completions
+api_key: ${OPENAI_API_KEY:-}
 auth:
-  type: free
-  rate_limit: 10  # requests per minute
+  type: ${OPENAI_API_KEY:+authenticated}
+  rate_limit: ${OPENAI_API_KEY:+60}${OPENAI_API_KEY:-10}
 fallback:
   - model: gpt-3.5-turbo
   - model: local-llm
 EOF
-    fi
     
     log_success "LLM configurado"
+}
+
+# Analyze project deeply
+analyze_project_deeply() {
+    log_step "Analizando proyecto en profundidad..."
+    
+    source "$HOME/.iacore/venv/bin/activate"
+    
+    # Run Python analysis script
+    python3 << 'PYTHON_EOF'
+import json
+import sys
+from pathlib import Path
+
+project_root = Path(".")
+analysis = {
+    "frameworks": [],
+    "languages": [],
+    "build_tools": [],
+    "package_managers": [],
+    "requires_mcp": False,
+    "mcp_config": {},
+    "recommended_agents": [],
+    "custom_workflows": []
+}
+
+# Detect frameworks and tools
+if (project_root / "package.json").exists():
+    import json
+    pkg = json.loads((project_root / "package.json").read_text())
+    deps = {**pkg.get("dependencies", {}), **pkg.get("devDependencies", {})}
+    
+    if "react" in deps: analysis["frameworks"].append("react")
+    if "vue" in deps: analysis["frameworks"].append("vue")
+    if "next" in deps: analysis["frameworks"].append("nextjs")
+    if "@angular/core" in deps: analysis["frameworks"].append("angular")
+    
+    analysis["languages"].append("javascript")
+    if "typescript" in deps: analysis["languages"].append("typescript")
+    analysis["package_managers"].append("npm")
+    
+    # Check if needs build
+    if "scripts" in pkg and "build" in pkg["scripts"]:
+        analysis["build_tools"].append("npm-scripts")
+
+if (project_root / "requirements.txt").exists() or (project_root / "pyproject.toml").exists():
+    analysis["languages"].append("python")
+    analysis["package_managers"].append("pip")
+    
+    # Check for FastAPI/Django/Flask
+    if (project_root / "requirements.txt").exists():
+        reqs = (project_root / "requirements.txt").read_text().lower()
+        if "fastapi" in reqs: analysis["frameworks"].append("fastapi")
+        if "django" in reqs: analysis["frameworks"].append("django")
+        if "flask" in reqs: analysis["frameworks"].append("flask")
+
+if (project_root / "go.mod").exists():
+    analysis["languages"].append("go")
+    analysis["package_managers"].append("go-mod")
+
+if (project_root / "Cargo.toml").exists():
+    analysis["languages"].append("rust")
+    analysis["package_managers"].append("cargo")
+
+# Determine if MCP is needed (for backend projects)
+if any(f in analysis["frameworks"] for f in ["fastapi", "django", "flask", "express"]):
+    analysis["requires_mcp"] = True
+    analysis["mcp_config"] = {
+        "memory_server": True,
+        "context_server": True,
+        "custom_tools": True
+    }
+
+# Recommend agents based on project type
+if "react" in analysis["frameworks"] or "vue" in analysis["frameworks"]:
+    analysis["recommended_agents"].extend(["frontend-developer", "ux-designer"])
+if "python" in analysis["languages"]:
+    analysis["recommended_agents"].append("backend-developer")
+if "fastapi" in analysis["frameworks"]:
+    analysis["recommended_agents"].append("api-engineer")
+if "typescript" in analysis["languages"]:
+    analysis["recommended_agents"].append("typescript-expert")
+
+# Custom workflows based on project
+if "package.json" in [f.name for f in project_root.glob("*")]:
+    analysis["custom_workflows"].append({
+        "name": "npm_install_on_package_change",
+        "trigger": "package.json modified",
+        "actions": ["npm install"]
+    })
+
+if "requirements.txt" in [f.name for f in project_root.glob("*")]:
+    analysis["custom_workflows"].append({
+        "name": "pip_install_on_requirements_change",
+        "trigger": "requirements.txt modified",
+        "actions": ["pip install -r requirements.txt"]
+    })
+
+print(json.dumps(analysis, indent=2))
+PYTHON_EOF
 }
 
 # Setup project integration
@@ -195,9 +328,75 @@ setup_project_integration() {
     log_step "Integrando con proyecto..."
     
     # Create .iacore directory in project
-    mkdir -p ".iacore"
+    mkdir -p ".iacore/runtime"
     
-    # Generate default config
+    # Get deep analysis
+    log_info "Ejecutando análisis profundo..."
+    ANALYSIS=$(analyze_project_deeply)
+    echo "$ANALYSIS" > ".iacore/runtime/analysis.json"
+    
+    # Extract key info from analysis
+    REQUIRES_MCP=$(echo "$ANALYSIS" | grep -o '"requires_mcp": true' || echo "false")
+    FRAMEWORKS=$(echo "$ANALYSIS" | grep -A 10 '"frameworks"' | grep -o '"[a-z]*"' | tr -d '"' | tr '\n' ',' | sed 's/,$//')
+    AGENTS=$(echo "$ANALYSIS" | grep -A 10 '"recommended_agents"' | grep -o '"[a-z-]*"' | tr -d '"' | tr '\n' ',' | sed 's/,$//')
+    
+    log_info "Frameworks detectados: ${FRAMEWORKS:-ninguno}"
+    log_info "Agentes recomendados: ${AGENTS:-por defecto}"
+    
+    # Configure MCP if needed
+    MCP_CONFIG=""
+    if [[ "$REQUIRES_MCP" == *"true"* ]]; then
+        log_step "Proyecto requiere configuración MCP..."
+        
+        echo ""
+        echo -e "${CYAN}Este proyecto puede beneficiarse de MCP (Model Context Protocol)${NC}"
+        echo -e "${YELLOW}¿Configurar MCP ahora?${NC} [s/N]"
+        read -p "Respuesta: " setup_mcp
+        
+        if [[ "$setup_mcp" =~ ^[Ss]$ ]]; then
+            # Create MCP configuration
+            mkdir -p ".iacore/mcp"
+            
+            cat > ".iacore/mcp/config.yml" << 'EOF'
+version: 1
+
+servers:
+  memory:
+    enabled: true
+    command: python
+    args: ["-m", "iacore.mcp.memory_server"]
+  
+  context:
+    enabled: true
+    command: python
+    args: ["-m", "iacore.mcp.context_server"]
+    env:
+      PROJECT_ROOT: ${PROJECT_ROOT}
+  
+  tools:
+    enabled: true
+    command: python
+    args: ["-m", "iacore.mcp.tools_server"]
+
+tools:
+  - execute_command
+  - read_file
+  - write_file
+  - search_code
+  - analyze_dependencies
+EOF
+            
+            MCP_CONFIG="
+  mcp:
+    enabled: true
+    config_path: .iacore/mcp/config.yml
+    auto_start: true"
+            
+            log_success "MCP configurado"
+        fi
+    fi
+    
+    # Generate customized config based on analysis
     cat > ".iacore/config.yml" << EOF
 version: 1
 
@@ -205,16 +404,20 @@ project:
   type: $PROJECT_TYPE
   root: $PROJECT_ROOT
   auto_detected: true
+  frameworks: [${FRAMEWORKS}]
+  analysis_file: .iacore/runtime/analysis.json
 
 agent:
   enabled: true
   auto_analyze: true
   auto_execute: false
   watch_mode: true
+  recommended_agents: [${AGENTS}]
 
 llm:
   provider: openai
   model: gpt-4o-mini
+  config_file: ~/.iacore/llm_config.yml${MCP_CONFIG}
 
 api:
   host: 127.0.0.1
@@ -228,16 +431,33 @@ workflows:
   on_git_commit:
     - analyze_commit
     - suggest_improvements
+  on_package_change:
+    - update_dependencies
+    - verify_security
 EOF
+    
+    # Add custom workflows from analysis
+    if echo "$ANALYSIS" | grep -q "custom_workflows"; then
+        echo "$ANALYSIS" | python3 -c '
+import json, sys
+data = json.load(sys.stdin)
+if "custom_workflows" in data and data["custom_workflows"]:
+    print("\n# Custom workflows detected:")
+    for wf in data["custom_workflows"]:
+        print(f"  # {wf.get('"name'", '"unknown'"')}: {wf.get('"trigger'", '"'"')}")
+' >> ".iacore/config.yml" 2>/dev/null || true
+    fi
     
     # Add to .gitignore
     if [ ! -f ".gitignore" ]; then
         echo ".iacore/runtime/" > .gitignore
+        echo ".iacore/mcp/*.log" >> .gitignore
     elif ! grep -q ".iacore/runtime" .gitignore; then
         echo ".iacore/runtime/" >> .gitignore
+        echo ".iacore/mcp/*.log" >> .gitignore
     fi
     
-    log_success "Proyecto integrado"
+    log_success "Proyecto integrado con configuración personalizada"
 }
 
 # Deploy API server
@@ -300,8 +520,60 @@ install_cli() {
     log_success "CLI instalado"
 }
 
+# Validate installation
+validate_installation() {
+    log_step "Validando instalación..."
+    
+    # Check API health
+    sleep 2
+    if curl -s http://127.0.0.1:8788/health > /dev/null 2>&1; then
+        log_success "API respondiendo correctamente"
+    else
+        log_warning "API tardando en iniciar (normal en primera vez)"
+    fi
+    
+    # Check agent process
+    if [ -f "$HOME/.iacore/agent.pid" ]; then
+        AGENT_PID=$(cat "$HOME/.iacore/agent.pid")
+        if ps -p $AGENT_PID > /dev/null 2>&1; then
+            log_success "Agente ejecutándose (PID: $AGENT_PID)"
+        else
+            log_warning "Agente no detectado, puede tardar en iniciar"
+        fi
+    fi
+    
+    # Check config file
+    if [ -f ".iacore/config.yml" ]; then
+        log_success "Configuración creada correctamente"
+    else
+        log_error "No se pudo crear configuración"
+        return 1
+    fi
+    
+    # Check analysis
+    if [ -f ".iacore/runtime/analysis.json" ]; then
+        log_success "Análisis del proyecto completado"
+    fi
+    
+    log_success "Validación completada"
+}
+
 # Show summary
 show_summary() {
+    # Load analysis if available
+    ANALYSIS_SUMMARY=""
+    if [ -f ".iacore/runtime/analysis.json" ]; then
+        FRAMEWORKS=$(cat .iacore/runtime/analysis.json | grep -A 5 '"frameworks"' | grep -o '"[a-z]*"' | head -3 | tr -d '"' | tr '\n' ', ' | sed 's/, $//')
+        LANGUAGES=$(cat .iacore/runtime/analysis.json | grep -A 5 '"languages"' | grep -o '"[a-z]*"' | head -3 | tr -d '"' | tr '\n' ', ' | sed 's/, $//')
+        
+        if [ -n "$FRAMEWORKS" ]; then
+            ANALYSIS_SUMMARY="  • Frameworks: $FRAMEWORKS\n"
+        fi
+        if [ -n "$LANGUAGES" ]; then
+            ANALYSIS_SUMMARY="${ANALYSIS_SUMMARY}  • Lenguajes: $LANGUAGES\n"
+        fi
+    fi
+    
     echo ""
     echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
     echo -e "${GREEN}║                                                ║${NC}"
@@ -309,11 +581,27 @@ show_summary() {
     echo -e "${GREEN}║                                                ║${NC}"
     echo -e "${GREEN}╚════════════════════════════════════════════════╝${NC}"
     echo ""
-    echo -e "${CYAN}Estado:${NC}"
-    echo "  • Proyecto: $PROJECT_TYPE"
-    echo "  • API: http://127.0.0.1:8788"
-    echo "  • Agente: En ejecución (background)"
+    echo -e "${CYAN}Análisis del Proyecto:${NC}"
+    echo "  • Tipo: $PROJECT_TYPE"
+    if [ -n "$ANALYSIS_SUMMARY" ]; then
+        echo -e "$ANALYSIS_SUMMARY"
+    fi
+    echo ""
+    echo -e "${CYAN}Servicios:${NC}"
+    echo "  • API: http://127.0.0.1:8788 $(curl -s http://127.0.0.1:8788/health > /dev/null 2>&1 && echo '✅' || echo '⏳')"
+    echo "  • Agente: En ejecución (background) ✅"
     echo "  • Logs: .iacore/runtime/"
+    echo ""
+    echo -e "${CYAN}Configuración:${NC}"
+    if [ -n "$OPENAI_API_KEY" ]; then
+        echo "  • OpenAI API: ✅ Configurada"
+    else
+        echo "  • OpenAI API: ⚠️  No configurada (funcionalidad limitada)"
+        echo "    Configura con: export OPENAI_API_KEY='tu-key'"
+    fi
+    if [ -f ".iacore/mcp/config.yml" ]; then
+        echo "  • MCP: ✅ Configurado"
+    fi
     echo ""
     echo -e "${CYAN}Comandos disponibles:${NC}"
     echo "  iacore status    - Ver estado del sistema"
@@ -321,9 +609,12 @@ show_summary() {
     echo "  iacore config    - Configurar opciones"
     echo "  iacore pause     - Pausar agente"
     echo "  iacore resume    - Reanudar agente"
+    echo "  iacore analyze   - Re-analizar proyecto"
     echo ""
     echo -e "${YELLOW}💡 Tip:${NC} El agente está observando tu proyecto."
     echo "   Trabaja normalmente y IA_Core asistirá de forma transparente."
+    echo ""
+    echo -e "${CYAN}📖 Documentación:${NC} https://github.com/YOUR_USERNAME/IA_core"
     echo ""
 }
 
@@ -338,10 +629,11 @@ main() {
     install_iacore
     configure_opencore
     configure_llm
-    setup_project_integration
+    setup_project_integration  # Includes deep analysis and MCP setup
     deploy_api
     start_agent
     install_cli
+    validate_installation
     
     show_summary
 }
