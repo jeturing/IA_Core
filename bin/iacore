@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""IA_Core CLI entry point."""
+
+from iacore.cli.main import app
+
+if __name__ == "__main__":
+    app()
