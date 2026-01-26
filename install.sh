@@ -18,6 +18,17 @@ log_info() { echo -e "${CYAN}[INFO]${NC} $1"; }
 log_success() { echo -e "${GREEN}[✓]${NC} $1"; }
 log_warning() { echo -e "${YELLOW}[⚠]${NC} $1"; }
 log_error() { echo -e "${RED}[✗]${NC} $1"; }
+
+# Non-interactive detection and config
+NONINTERACTIVE=0
+if [ -n "$IACORE_NONINTERACTIVE" ] || [ ! -t 0 ]; then
+    NONINTERACTIVE=1
+    log_info "Modo no interactivo habilitado"
+fi
+
+# Optional local source fallback for offline installs
+IACORE_LOCAL_SOURCE_DEFAULT="/Users/owner/Desktop/jcore/IA_core"
+IACORE_LOCAL_SOURCE_PATH="${IACORE_LOCAL_SOURCE:-$IACORE_LOCAL_SOURCE_DEFAULT}"
 log_step() { echo -e "${BLUE}[→]${NC} $1"; }
 
 # Banner
@@ -157,10 +168,21 @@ allowed_commands:
   - node
   - pytest
   - jest
-EOF
     
-    log_success "OpenCore configurado"
-}
+    # Prefer local source when available (offline-friendly)
+    if [ -d "$IACORE_LOCAL_SOURCE_PATH" ]; then
+        log_info "Usando fuente local: $IACORE_LOCAL_SOURCE_PATH"
+        mkdir -p "$HOME/.iacore/src"
+        rsync -a --delete "$IACORE_LOCAL_SOURCE_PATH/" "$HOME/.iacore/src/" 2>/dev/null || cp -R "$IACORE_LOCAL_SOURCE_PATH" "$HOME/.iacore/src"
+    else
+        log_info "Descargando desde GitHub..."
+        # Attempt download with timeout; if it fails, continue gracefully
+        if command -v curl >/dev/null 2>&1; then
+            curl -m 10 -fsSL "https://raw.githubusercontent.com/jeturing/IA_core/main/README.md" >/dev/null 2>&1 || log_warning "No se pudo acceder a GitHub (continuando en modo limitado)"
+        else
+            log_warning "curl no disponible; modo sin descarga"
+        fi
+    fi
 
 # Configure GPT-4o-mini
 configure_llm() {
@@ -170,38 +192,44 @@ configure_llm() {
     if [ -n "$OPENAI_API_KEY" ]; then
         log_info "Usando OPENAI_API_KEY existente"
     else
-        log_warning "No se encontró OPENAI_API_KEY en el entorno"
-        echo ""
-        echo -e "${YELLOW}IA_Core necesita una API key de OpenAI para funcionar completamente.${NC}"
-        echo -e "${CYAN}Opciones:${NC}"
-        echo "  1. Proporcionar API key ahora (recomendado)"
-        echo "  2. Configurar después (funcionalidad limitada)"
-        echo ""
-        
-        read -p "Opción [1/2]: " api_choice
-        
-        if [ "$api_choice" = "1" ]; then
+        if [ "$NONINTERACTIVE" -eq 1 ]; then
+    if [ -f "$HOME/.iacore/src/requirements.txt" ]; then
+        pip install -r "$HOME/.iacore/src/requirements.txt" || log_warning "Instalación de dependencias parcial (sin conexión)"
+    else
+        log_warning "No se encontró requirements.txt en la fuente local"
+    fi
             echo ""
-            echo -e "${CYAN}Obtén tu API key en: https://platform.openai.com/api-keys${NC}"
-            echo -e "${YELLOW}(El texto no se mostrará al escribir por seguridad)${NC}"
-            read -sp "Ingresa tu OpenAI API key: " user_api_key
+            echo -e "${YELLOW}IA_Core necesita una API key de OpenAI para funcionar completamente.${NC}"
+            echo -e "${CYAN}Opciones:${NC}"
+            echo "  1. Proporcionar API key ahora (recomendado)"
+            echo "  2. Configurar después (funcionalidad limitada)"
             echo ""
             
-            if [ -n "$user_api_key" ]; then
-                # Save to .bashrc or .zshrc
-                shell_rc="$HOME/.bashrc"
-                [ -f "$HOME/.zshrc" ] && shell_rc="$HOME/.zshrc"
+            read -p "Opción [1/2]: " api_choice
+            
+            if [ "$api_choice" = "1" ]; then
+                echo ""
+                echo -e "${CYAN}Obtén tu API key en: https://platform.openai.com/api-keys${NC}"
+                echo -e "${YELLOW}(El texto no se mostrará al escribir por seguridad)${NC}"
+                read -sp "Ingresa tu OpenAI API key: " user_api_key
+                echo ""
                 
-                echo "" >> "$shell_rc"
-                echo "# IA_Core OpenAI API Key" >> "$shell_rc"
-                echo "export OPENAI_API_KEY='$user_api_key'" >> "$shell_rc"
-                
-                export OPENAI_API_KEY="$user_api_key"
-                
-                log_success "API key guardada en $shell_rc"
+                if [ -n "$user_api_key" ]; then
+                    # Save to .bashrc or .zshrc
+                    shell_rc="$HOME/.bashrc"
+                    [ -f "$HOME/.zshrc" ] && shell_rc="$HOME/.zshrc"
+                    
+                    echo "" >> "$shell_rc"
+                    echo "# IA_Core OpenAI API Key" >> "$shell_rc"
+                    echo "export OPENAI_API_KEY='$user_api_key'" >> "$shell_rc"
+                    
+                    export OPENAI_API_KEY="$user_api_key"
+                    
+                    log_success "API key guardada en $shell_rc"
+                fi
+            else
+                log_warning "Continuando sin API key. Funcionalidad limitada."
             fi
-        else
-            log_warning "Continuando sin API key. Funcionalidad limitada."
         fi
     fi
     
@@ -348,10 +376,21 @@ setup_project_integration() {
     if [[ "$REQUIRES_MCP" == *"true"* ]]; then
         log_step "Proyecto requiere configuración MCP..."
         
-        echo ""
-        echo -e "${CYAN}Este proyecto puede beneficiarse de MCP (Model Context Protocol)${NC}"
-        echo -e "${YELLOW}¿Configurar MCP ahora?${NC} [s/N]"
-        read -p "Respuesta: " setup_mcp
+        setup_mcp="n"
+        if [ "$NONINTERACTIVE" -eq 1 ]; then
+            # Allow forcing via env var
+            if [ -n "$IACORE_ENABLE_MCP" ] && [ "$IACORE_ENABLE_MCP" != "0" ]; then
+                setup_mcp="s"
+                log_info "Modo no interactivo: MCP habilitado por IACORE_ENABLE_MCP"
+            else
+                log_info "Modo no interactivo: MCP deshabilitado por defecto"
+            fi
+        else
+            echo ""
+            echo -e "${CYAN}Este proyecto puede beneficiarse de MCP (Model Context Protocol)${NC}"
+            echo -e "${YELLOW}¿Configurar MCP ahora?${NC} [s/N]"
+            read -p "Respuesta: " setup_mcp
+        fi
         
         if [[ "$setup_mcp" =~ ^[Ss]$ ]]; then
             # Create MCP configuration
