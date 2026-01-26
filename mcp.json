@@ -1,0 +1,29 @@
+{
+  "mcpServers": {
+    "ia-core-memory": {
+      "command": "python",
+      "args": ["-m", "iacore.mcp.memory_server"],
+      "env": {
+        "IACORE_HOME": "~/.iacore"
+      }
+    },
+    "ia-core-context": {
+      "command": "python",
+      "args": ["-m", "iacore.mcp.context_server"],
+      "env": {
+        "PROJECT_ROOT": "${workspaceFolder}"
+      }
+    },
+    "ia-core-tools": {
+      "command": "python",
+      "args": ["-m", "iacore.mcp.tools_server"],
+      "env": {
+        "PROJECT_ROOT": "${workspaceFolder}"
+      }
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["-y", "chrome-devtools-mcp@latest"]
+    }
+  }
+}

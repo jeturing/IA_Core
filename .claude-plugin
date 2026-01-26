@@ -1,0 +1,39 @@
+{
+  "name": "ia-core-skills",
+  "version": "0.1.0",
+  "description": "IA_Core skills for Claude and other AI agents - Autonomous orchestration, MCP servers, and Chrome DevTools",
+  "repository": "https://github.com/jeturing/IA_core",
+  "author": "jeturing",
+  "license": "MIT",
+  "skills": [
+    {
+      "name": "ia-core",
+      "path": "./SKILL.md",
+      "description": "Main autonomous AI orchestration layer with MCP servers"
+    },
+    {
+      "name": "project-analyzer",
+      "path": "./skills/project-analyzer/SKILL.md",
+      "description": "Deep project analysis - detect frameworks, languages, dependencies"
+    },
+    {
+      "name": "autonomous-executor",
+      "path": "./skills/autonomous-executor/SKILL.md",
+      "description": "Silent command execution via OpenCore in sandboxed environment"
+    },
+    {
+      "name": "memory-manager",
+      "path": "./skills/memory-manager/SKILL.md",
+      "description": "Persistent memory for facts, decisions, and learnings"
+    },
+    {
+      "name": "chrome-devtools",
+      "path": "./skills/chrome-devtools/SKILL.md",
+      "description": "Browser automation and debugging via Chrome DevTools Protocol"
+    }
+  ],
+  "mcpServers": "./mcp.json",
+  "install": {
+    "command": "curl -fsSL https://raw.githubusercontent.com/jeturing/IA_core/main/install.sh | bash"
+  }
+}
