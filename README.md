@@ -1,317 +1,152 @@
-# IA_Core 🤖
+# 🤖 IA_Core — Autonomous AI agent layer for any project
 
-**Autonomous AI agent layer** - Installs into any project and manages it intelligently using GPT-4o-mini (free tier) and OpenCore.
+[![Product](https://img.shields.io/badge/product-Herramienta%20interna-blue?style=flat-square)](https://jeturing.com)
+[![Stack](https://img.shields.io/badge/stack-Python%203.9-336791?style=flat-square)](https://jeturing.com)
+[![License](https://img.shields.io/badge/license-MIT-orange?style=flat-square)](LICENSE)
 
-## 🚀 One-Line Installation
+**IA_Core installs into any project and manages it intelligently: it deeply analyzes the project (frameworks, languages, dependencies, structure), auto-configures itself, deploys MCP servers (memory, context and tools), exposes a CLI and a REST API, and runs an autonomous agent in the background that observes and assists while you work.**
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/IA_core/main/install.sh | bash
-```
+> 📍 **State discipline** — every capability in this README carries its state: **Built** (in `main`, with tests or evidence) · **In development** (on a branch) · **Designed** (specified, not built) · **Concept** (recorded idea). States are never mixed.
 
-**That's it!** IA_Core will:
-- **Deeply analyze your project** - Detect frameworks, languages, dependencies
-- **Request necessary credentials** - OpenAI API key (recommended), MCP configuration
-- **Auto-configure** - Generate project-specific workflows and settings  
-- **Deploy MCP servers** - Memory, context, and tools for advanced capabilities
-- **Start monitoring** - Agent runs in background watching your project
-- **Add CLI tools** - `iacore` command available globally
-
-### 📋 Requirements
-
-- **Python 3.9+** (required)
-- **OpenAI API Key** (recommended for full functionality)
-  - Get one at: https://platform.openai.com/api-keys
-  - Free tier with GPT-4o-mini works perfectly
-  - Without API key: limited functionality with fallbacks
-
-### 🔧 Interactive Configuration
-
-During installation, you'll be prompted for:
-
-1. **OpenAI API Key** (optional but recommended)
-   - Used for intelligent analysis
-   - GPT-4o-mini free tier is sufficient
-   - Configure later: `iacore config`
-
-2. **MCP Configuration** (for backend/API projects)  
-   - Enables memory, context, and tools servers
-   - Auto-detected for Django, FastAPI, Flask, Express
-   - Can skip if not needed
-
-The installer **analyzes your project** and configures itself optimally!
-
-## 🎯 Key Features
-
-- 🤖 **Fully Autonomous** - Works independently after installation
-- 🧠 **GPT-4o-mini Powered** - Free-tier LLM for intelligent analysis
-- 👻 **Invisible Execution** - Commands via OpenCore (silent)
-- 📊 **Project-Aware** - Understands 20+ project types automatically
-- 🔄 **Real-time Monitoring** - Watches file changes intelligently
-- ⚙️ **Smart Configuration** - Auto-configures based on project analysis
-- 🔌 **MCP Protocol** - Memory, context, tools servers for advanced features
-- 🎨 **Rich CLI** - Beautiful terminal UI with status and controls
-- 🌐 **REST API** - HTTP API on port 8788 for integrations
-- 💾 **Persistent Learning** - Remembers and improves over time
-- 🔒 **Secure** - Credentials stored safely, dangerous commands blocked
-
-## 📖 Usage
-
-Once installed, simply work on your project normally. IA_Core observes and assists transparently.
-
-### CLI Commands
-
-```bash
-# View status and project analysis
-iacore status
-
-# See agent logs in real-time
-iacore logs
-
-# Pause/resume the agent
-iacore pause
-iacore resume
-
-# Configure settings (API keys, workflows)
-iacore config
-
-# Re-analyze project after major changes
-iacore analyze
-
-# Check version
-iacore version
-
-# Uninstall completely
-iacore uninstall
-```
-
-### 🔍 What Gets Analyzed
-
-IA_Core performs deep project analysis during installation:
-
-- **Frameworks**: React, Vue, Angular, Next.js, Django, FastAPI, Flask, Express
-- **Languages**: Python, JavaScript, TypeScript, Go, Rust, Java
-- **Build Tools**: npm, pip, cargo, go modules, gradle
-- **Dependencies**: package.json, requirements.txt, go.mod, Cargo.toml
-- **Structure**: Components, modules, configuration
-- **Recommended Agents**: Based on detected technologies
-
-**Example analysis output:**
-```
-📊 Project Analysis:
-  • Type: Python
-  • Frameworks: fastapi, sqlalchemy
-  • Languages: python
-  • Recommended Agents: backend-developer, api-engineer
-  • MCP: ✅ Configured (memory + context + tools)
-```
-
-## 🏗️ Architecture
-
-```
-┌──────────────────────────────────────────┐
-│       Your Project (any type)            │
-├──────────────────────────────────────────┤
-│         IA_Core (invisible layer)        │
-│  ┌────────────┐      ┌────────────────┐ │
-│  │  Detector  │─────▶│ IntelligentAI  │ │
-│  └────────────┘      └────────────────┘ │
-│  ┌────────────┐      ┌────────────────┐ │
-│  │ GPT-4o-mini│◀─────│AutonomousAgent │ │
-│  └────────────┘      └────────────────┘ │
-│         │                    │           │
-│         ▼                    ▼           │
-│  ┌────────────┐      ┌────────────────┐ │
-│  │   Memory   │      │   OpenCore     │ │
-│  │   (MCP)    │      │   Executor     │ │
-│  └────────────┘      └────────────────┘ │
-└──────────────────────────────────────────┘
-```
-
-**Components:**
-
-- **ProjectDetector**: Analyzes project type, frameworks, dependencies
-- **IntelligentAnalyzer**: LLM-powered deep understanding of codebase
-- **AutonomousAgent**: Main loop monitoring files and executing workflows
-- **LLMClient**: GPT-4o-mini integration with rate limiting and caching
-- **OpenCoreExecutor**: Silent command execution in sandboxed environment
-- **MCP Servers**: Memory, context, and tools for advanced agent capabilities
-- **FastAPI Server**: REST API for external integrations
-- **Typer CLI**: Rich command-line interface for user control
-
-## 🔌 MCP (Model Context Protocol)
-
-IA_Core includes three MCP servers that enhance agent capabilities:
-
-### Memory Server
-Persistent memory across sessions:
-```python
-# Stores facts, decisions, learnings
-memory/store_fact
-memory/retrieve_fact
-memory/store_decision
-memory/store_learning
-memory/get_learnings
-```
-
-### Context Server  
-Project understanding and code navigation:
-```python
-# Search, read, analyze code
-context/search_files
-context/read_file
-context/find_definition
-context/get_structure
-context/project_summary
-```
-
-### Tools Server
-Safe command execution:
-```python
-# Execute commands, modify files
-tools/execute_command
-tools/write_file
-tools/search_code
-tools/analyze_dependencies
-```
-
-MCP servers are **automatically configured** during installation for projects that need them (detected backend/API frameworks).
-
-## 📊 Project Support Matrix
-
-| Type | Auto-Detection | Workflows | MCP |
-|------|----------------|-----------|-----|
-| React | ✅ | Component analysis, build optimization | Optional |
-| Vue | ✅ | Component analysis, state management | Optional |
-| Angular | ✅ | Module analysis, dependency check | Optional |
-| Next.js | ✅ | SSR optimization, route analysis | Optional |
-| Python | ✅ | Code quality, type checking, tests | ✅ |
-| Django | ✅ | API analysis, migrations, admin | ✅ |
-| FastAPI | ✅ | Endpoint analysis, validation | ✅ |
-| Flask | ✅ | Route analysis, blueprints | ✅ |
-| Node.js | ✅ | Dependency audits, package updates | Optional |
-| Express | ✅ | API endpoints, middleware analysis | ✅ |
-| Go | ✅ | Module analysis, formatting | Optional |
-| Rust | ✅ | Cargo check, clippy suggestions | Optional |
-
-## 🛠️ Advanced Configuration
-
-### Manual Configuration
-
-Edit `.iacore/config.yml` in your project:
-
-```yaml
-version: 1
-
-project:
-  type: python
-  root: /path/to/project
-  frameworks: [fastapi, sqlalchemy]
-
-agent:
-  enabled: true
-  auto_analyze: true
-  auto_execute: false  # Set true for full autonomy
-  watch_mode: true
-
-llm:
-  provider: openai
-  model: gpt-4o-mini
-  config_file: ~/.iacore/llm_config.yml
-
-mcp:
-  enabled: true
-  config_path: .iacore/mcp/config.yml
-  auto_start: true
-
-api:
-  host: 127.0.0.1
-  port: 8788
-  auto_start: true
-
-workflows:
-  on_file_change:
-    - detect_impact
-    - analyze_context
-  on_git_commit:
-    - analyze_commit
-    - suggest_improvements
-  on_package_change:
-    - update_dependencies
-    - verify_security
-```
-
-### Environment Variables
-
-```bash
-# OpenAI API Key
-export OPENAI_API_KEY='sk-...'
-
-# Custom project root for MCP servers
-export PROJECT_ROOT='/path/to/project'
-
-# Custom IA_Core home directory
-export IACORE_HOME='~/.iacore'
-```
-
-## 📡 REST API
-
-IA_Core exposes a REST API on `http://127.0.0.1:8788`:
-
-```bash
-# Check health
-curl http://127.0.0.1:8788/health
-
-# Get agent status
-curl http://127.0.0.1:8788/status
-
-# Analyze project
-curl -X POST http://127.0.0.1:8788/analyze \
-  -H "Content-Type: application/json" \
-  -d '{"path": "."}'
-
-# Pause/resume agent
-curl -X POST http://127.0.0.1:8788/agent/pause
-curl -X POST http://127.0.0.1:8788/agent/resume
-```
-
-See full API documentation: [API_REFERENCE.md](docs/API_REFERENCE.md)
-
-## 🔒 Security
-
-IA_Core is designed with security in mind:
-
-- ✅ **Sandboxed execution** - Commands run in controlled environment
-- ✅ **Dangerous command blocking** - rm -rf, sudo, shutdown blocked
-- ✅ **Credential encryption** - API keys stored securely with proper permissions
-- ✅ **Rate limiting** - Prevents API abuse (10 req/min on free tier)
-- ✅ **Audit logging** - All actions logged for review
-- ✅ **No external data** - Project data stays local
-
-## 🤝 Contributing
-
-Contributions welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details.
-
-## 🔗 Links
-
-- **Documentation**: [docs/](docs/)
-- **Agent Spec**: [AGENT_SPEC.md](AGENT_SPEC.md)
-- **Deployment Guide**: [DEPLOYMENT.md](DEPLOYMENT.md)
-- **Issues**: GitHub Issues
-- **Discussions**: GitHub Discussions
-
-## 💬 Support
-
-Need help?
-
-1. Check the [documentation](docs/)
-2. Review [AGENT_SPEC.md](AGENT_SPEC.md) for technical details
-3. Search existing [GitHub Issues](https://github.com/YOUR_USERNAME/IA_core/issues)
-4. Create a new issue with details
+| At a glance | |
+|---|---|
+| **Form** | Python package (`iacore/`) + CLI (`iacore`, in `bin/`) + bundled skills |
+| **State** | Persistent learning in its MCP memory server; credentials are prompted at install time and never live in this repo |
+| **Interfaces** | CLI and REST API on port 8788; English |
+| **Deployment** | One installer (`install.sh`) into the target project; no hosted service |
 
 ---
 
-**Built with ❤️ for autonomous AI development**
+## 📋 Table of contents
+
+- [🌐 Position in the ecosystem](#️-position-in-the-ecosystem)
+- [🧩 Capabilities and state](#️-capabilities-and-state)
+- [🏗️ Architecture](#️-architecture)
+- [🗂️ Repository map](#️-repository-map)
+- [🔒 Security model](#-security-model)
+- [🖥️ Surfaces and API](#️-surfaces-and-api)
+- [🚀 Installation and deployment](#-installation-and-deployment)
+- [⚙️ Configuration](#️-configuration)
+- [🩺 Troubleshooting](#-troubleshooting)
+- [🗺️ Honest limits and roadmap](#️-honest-limits-and-roadmap)
+- [📝 Changelog](#-changelog)
+- [👥 Credits](#-credits)
+
+## 🌐 Position in the ecosystem
+
+Internal tooling of **Desarrollar** (Jeturing, build-what-is-missing): IA_Core is the autonomous agent layer the house installs into a project to analyze it and assist its development, instead of buying an external agent platform.
+
+What it is **NOT**: it is not a hosted product and it is not the house's production AI core — it is an installable layer that lives inside the target project, with that project's own credentials and lifecycle.
+
+## 🧩 Capabilities and state
+
+- **Deep project analysis** — Built. `iacore/core/analyzer.py` and `iacore/core/detector.py`: detects 20+ project types (frameworks, languages, build tools, dependencies) and recommends agents per stack.
+- **Autonomous agent** — Built. `iacore/agent/autonomous.py`: background monitoring of the project after installation, with pause/resume from the CLI.
+- **MCP servers** — Built. `iacore/mcp/`: memory, context and tools servers (`memory_server.py`, `context_server.py`, `tools_server.py`); configuration template in `mcp.json`.
+- **LLM client** — Built. `iacore/core/llm_client.py`: the agent's model access (an API key is recommended for full functionality; without one, functionality is limited with fallbacks).
+- **Executor** — Built. `iacore/core/opencore_executor.py`: silent command execution layer, with dangerous commands blocked (see Security).
+- **CLI** — Built. `iacore/cli/main.py` (binary in `bin/iacore`): `status`, `logs`, `pause`, `resume`, `config`, `analyze`, `version`, `uninstall`.
+- **REST API** — Built. `iacore/api/server.py`: HTTP API on port 8788 for integrations.
+- **Bundled skills** — Built. `skills/`: `project-analyzer`, `memory-manager`, `chrome-devtools` and `autonomous-executor`, plus the root `SKILL.md`.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    U[Developer] --> CLI[iacore CLI]
+    CLI --> AG[Autonomous agent]
+    AG --> AN[Analyzer / detector]
+    AG --> EX[Executor]
+    AG --> LLM[LLM client]
+    AG --> MCP[MCP servers: memory, context, tools]
+    API[REST API :8788] --> AG
+```
+
+## 🗂️ Repository map
+
+```text
+IA_Core/
+├── iacore/
+│   ├── core/               # Analyzer, detector, LLM client, executor
+│   ├── agent/              # Autonomous agent
+│   ├── mcp/                # MCP servers: memory, context, tools
+│   ├── api/                # REST API server (port 8788)
+│   ├── cli/                # CLI entry point
+│   └── utils/              # Logging
+├── bin/iacore              # Installed CLI binary
+├── skills/                 # Bundled skills (analyzer, memory, devtools, executor)
+├── install.sh              # Installer into a target project
+├── AGENT_SPEC.md           # Agent specification (at root: referenced by verify.sh)
+├── DEPLOYMENT.md           # Deployment guide (at root: referenced by verify.sh)
+└── docs/                   # Documentation index — docs/README.md
+```
+
+The full documentation is indexed in [`docs/`](docs/README.md).
+
+## 🔒 Security model
+
+- Credentials are requested interactively during installation (or later with `iacore config`) and stored by the target installation — never in this repository.
+- The executor blocks dangerous commands; the agent works inside the project it was installed into.
+- Without an LLM API key the agent degrades to limited functionality with fallbacks instead of failing open into uncontrolled actions.
+
+## 🖥️ Surfaces and API
+
+- CLI: `iacore status | logs | pause | resume | config | analyze | version | uninstall`.
+- REST API on port 8788 (`iacore/api/server.py`) for integrations with the installed agent.
+
+## 🚀 Installation and deployment
+
+### Requirements
+
+- Python 3.9+.
+- An LLM API key is recommended for full functionality (limited mode without one).
+
+### Install
+
+```bash
+git clone https://github.com/jeturing/IA_Core.git
+cd IA_Core
+bash install.sh
+```
+
+The installer analyzes the target project, prompts for the credentials it needs, auto-configures workflows, deploys the MCP servers and starts the agent. See [`INSTALLATION_FEATURES.md`](INSTALLATION_FEATURES.md) and [`DEPLOYMENT.md`](DEPLOYMENT.md).
+
+### Verification
+
+```bash
+bash verify.sh
+iacore status
+```
+
+## ⚙️ Configuration
+
+| Parameter | Where it lives | Notes |
+|---|---|---|
+| LLM API key | Target installation (prompted, or `iacore config`) | Never in this repo |
+| MCP configuration | `mcp.json` and the generated project config | Auto-detected for backend/API projects; can be skipped |
+
+## 🩺 Troubleshooting
+
+### The agent runs with limited functionality
+
+Cause: no LLM API key was configured at install time. Correction: run `iacore config` in the target project and add the key; full analysis and recommendations need it.
+
+### The analysis does not reflect a big refactor
+
+Cause: the project changed shape after the initial analysis. Correction: `iacore analyze` re-runs the deep analysis and refreshes the recommended agents.
+
+## 🗺️ Honest limits and roadmap
+
+- The historical README advertised a one-line install URL with an unsubstituted `YOUR_USERNAME` placeholder: that URL never worked as printed. The supported path is cloning this repo and running `install.sh` (above).
+- Several root documents (`AGENT_SPEC.md`, `DEPLOYMENT.md`) stay at the root on purpose: `verify.sh` references them by that path; they are indexed from `docs/README.md` instead of moved.
+- The repository also carries the helper scripts used to create and push the house's GitHub repos (`create_and_push.sh` and companions); they are tooling of this repo's own history, documented in `GITHUB_SETUP.md` and `EXECUTE_PUSH.md`.
+
+## 📝 Changelog
+
+### 2026-01-27 — GitHub repo creation scripts (`0e6116c`)
+
+- Scripts to create and push repositories to GitHub, on top of the agent layer (analysis, MCP servers, CLI and API) already in `main`.
+
+## 👥 Credits
+
+**Jeturing Inc.** — internal tooling (Desarrollar). Contributions: see [`CONTRIBUTING.md`](CONTRIBUTING.md). MIT license (see `LICENSE`).
